@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.db import models
 
+
 class Tag(models.Model):
     name = models.CharField(max_length=32, unique=True)
     slug = models.SlugField(max_length=32, unique=True)
@@ -26,7 +27,8 @@ class Ingredient(models.Model):
 
 class Recipe(models.Model):
     author = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="recipes"
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        related_name="recipes"
     )
     name = models.CharField(max_length=200)
     text = models.TextField()
@@ -37,7 +39,10 @@ class Recipe(models.Model):
     class Meta:
         ordering = ("-id",)
         constraints = [
-            models.CheckConstraint(check=models.Q(cooking_time__gt=0), name="recipe_cooking_time_gt_0"),
+            models.CheckConstraint(
+                check=models.Q(cooking_time__gt=0),
+                name="recipe_cooking_time_gt_0"
+            ),
         ]
 
     def __str__(self):
@@ -45,27 +50,45 @@ class Recipe(models.Model):
 
 
 class IngredientInRecipe(models.Model):
-    recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE, related_name="recipe_ingredients")
-    ingredient = models.ForeignKey(Ingredient, on_delete=models.CASCADE, related_name="ingredient_recipes")
+    recipe = models.ForeignKey(
+        Recipe, on_delete=models.CASCADE, related_name="recipe_ingredients"
+    )
+    ingredient = models.ForeignKey(
+        Ingredient, on_delete=models.CASCADE, related_name="ingredient_recipes"
+    )
     amount = models.PositiveIntegerField()
 
     class Meta:
         unique_together = ("recipe", "ingredient")
         constraints = [
-            models.CheckConstraint(check=models.Q(amount__gt=0), name="ingredient_in_recipe_amount_gt_0"),
+            models.CheckConstraint(
+                check=models.Q(amount__gt=0),
+                name="ingredient_in_recipe_amount_gt_0"
+            ),
         ]
 
+
 class Favorite(models.Model):
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="favorites")
-    recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE, related_name="favorited_by")
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        related_name="favorites"
+    )
+    recipe = models.ForeignKey(
+        Recipe, on_delete=models.CASCADE, related_name="favorited_by"
+    )
 
     class Meta:
         unique_together = ("user", "recipe")
 
 
 class ShoppingCart(models.Model):
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="cart_items")
-    recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE, related_name="in_carts")
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        related_name="cart_items"
+    )
+    recipe = models.ForeignKey(
+        Recipe, on_delete=models.CASCADE, related_name="in_carts"
+    )
 
     class Meta:
         unique_together = ("user", "recipe")

@@ -1,25 +1,37 @@
-# users/management/commands/init_users.py
 import os
-from django.core.management.base import BaseCommand
+
 from django.contrib.auth import get_user_model
+from django.core.management.base import BaseCommand
 
 User = get_user_model()
 
-def _create_or_update_user(*, is_superuser: bool, username: str, email: str,
-                           password: str, first_name: str = "", last_name: str = "") -> str:
+
+def _create_or_update_user(
+    *,
+    is_superuser: bool,
+    username: str,
+    email: str,
+    password: str,
+    first_name: str = "",
+    last_name: str = "",
+) -> str:
     if not username or not email or not password:
         role = "superuser" if is_superuser else "user"
         return f"[init_users] Skipped {role}: missing required fields."
 
-    user, created = User.objects.get_or_create(username=username, defaults={
-        "email": email,
-        "first_name": first_name or "",
-        "last_name": last_name or "",
-        "is_staff": True if is_superuser else False,
-        "is_superuser": True if is_superuser else False,
-    })
+    user, created = User.objects.get_or_create(
+        username=username,
+        defaults={
+            "email": email,
+            "first_name": first_name or "",
+            "last_name": last_name or "",
+            "is_staff": True if is_superuser else False,
+            "is_superuser": True if is_superuser else False,
+        },
+    )
 
-    # Keep these idempotent: update email/names if they changed and always set password.
+    # Keep these idempotent: update email/names
+    # if they changed and always set password.
     changed = False
     if user.email != email:
         user.email = email
@@ -31,7 +43,8 @@ def _create_or_update_user(*, is_superuser: bool, username: str, email: str,
         user.last_name = last_name
         changed = True
 
-    # Always ensure password is set to the provided one (safe to call repeatedly).
+    # Always ensure password is set to
+    # the provided one (safe to call repeatedly).
     user.set_password(password)
     if changed:
         user.save()
@@ -39,13 +52,16 @@ def _create_or_update_user(*, is_superuser: bool, username: str, email: str,
         # set_password already saves in Django >= 3.2? To be explicit:
         user.save(update_fields=["password"])
 
-    return f"[init_users] {'Created' if created else 'Updated'} {'superuser' if is_superuser else 'user'}: {username}"
+    return (f"[init_users] {'Created' if created else 'Updated'}"
+            f"{'superuser' if is_superuser else 'user'}: {username}")
+
 
 class Command(BaseCommand):
     help = "Initialize default users from environment variables (idempotent)."
 
     def handle(self, *args, **options):
-        # Superuser (standard env names compatible with `createsuperuser --noinput`)
+        # Superuser
+        # (standard env names compatible with `createsuperuser --noinput`)
         su_username = os.getenv("DJANGO_SUPERUSER_USERNAME", "")
         su_email = os.getenv("DJANGO_SUPERUSER_EMAIL", "")
         su_password = os.getenv("DJANGO_SUPERUSER_PASSWORD", "")
@@ -61,9 +77,12 @@ class Command(BaseCommand):
             )
             self.stdout.write(self.style.SUCCESS(msg))
         else:
-            self.stdout.write(self.style.WARNING(
-                "[init_users] Superuser envs incomplete; skipping (provide DJANGO_SUPERUSER_USERNAME/EMAIL/PASSWORD)."
-            ))
+            self.stdout.write(
+                self.style.WARNING(
+                    "[init_users] Superuser envs incomplete;skipping"
+                    "(provide DJANGO_SUPERUSER_USERNAME/EMAIL/PASSWORD)."
+                )
+            )
 
         # Two regular users
         for n in (1, 2):
@@ -84,6 +103,9 @@ class Command(BaseCommand):
                 )
                 self.stdout.write(self.style.SUCCESS(msg))
             else:
-                self.stdout.write(self.style.WARNING(
-                    f"[init_users] Skipping regular user {n}: set {prefix}USERNAME/EMAIL/PASSWORD."
-                ))
+                self.stdout.write(
+                    self.style.WARNING(
+                        f"[init_users] Skipping regular user {n}: "
+                        f"set {prefix}USERNAME/EMAIL/PASSWORD."
+                    )
+                )

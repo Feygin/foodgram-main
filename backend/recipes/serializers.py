@@ -1,6 +1,9 @@
-from rest_framework import serializers
-from .models import Tag, Ingredient, Recipe, IngredientInRecipe
 from api.fields import Base64ImageField
+from rest_framework import serializers
+from users.serializers import UserSerializer
+
+from .models import Ingredient, IngredientInRecipe, Recipe, Tag
+
 
 class TagSerializer(serializers.ModelSerializer):
     class Meta:
@@ -19,7 +22,9 @@ class IngredientSerializer(serializers.ModelSerializer):
 class IngredientInRecipeReadSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(source="ingredient.id", read_only=True)
     name = serializers.CharField(source="ingredient.name", read_only=True)
-    measurement_unit = serializers.CharField(source="ingredient.measurement_unit", read_only=True)
+    measurement_unit = serializers.CharField(
+        source="ingredient.measurement_unit", read_only=True
+    )
 
     class Meta:
         model = IngredientInRecipe
@@ -27,14 +32,10 @@ class IngredientInRecipeReadSerializer(serializers.ModelSerializer):
 
 
 class RecipeMinifiedSerializer(serializers.ModelSerializer):
-    # Minimal fields per spec for favorites/cart responses
     class Meta:
         model = Recipe
         fields = ("id", "name", "image", "cooking_time")
 
-
-# Base64 image helper for create/update
-# from drf_extra_fields.fields import Base64ImageField
 
 class RecipeIngredientWriteSerializer(serializers.Serializer):
     id = serializers.IntegerField()
@@ -42,7 +43,6 @@ class RecipeIngredientWriteSerializer(serializers.Serializer):
 
 
 class RecipeWriteSerializer(serializers.ModelSerializer):
-    # Accept base64 on create/update
     image = Base64ImageField()
     ingredients = RecipeIngredientWriteSerializer(many=True, write_only=True)
     tags = serializers.PrimaryKeyRelatedField(
@@ -51,12 +51,13 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Recipe
-        fields = ("ingredients", "tags", "image", "name", "text", "cooking_time")
+        fields = ("ingredients", "tags", "image",
+                  "name", "text", "cooking_time")
 
-    # ---- validation ----
     def validate_cooking_time(self, value):
         if value < 1:
-            raise serializers.ValidationError("cooking_time must be at least 1.")
+            raise serializers.ValidationError(
+                "cooking_time must be at least 1.")
         return value
 
     def validate_tags(self, value):
@@ -69,14 +70,13 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
 
     def validate_ingredients(self, value):
         if not value:
-            raise serializers.ValidationError("At least one ingredient is required.")
+            raise serializers.ValidationError(
+                "At least one ingredient is required.")
 
         ids = [item["id"] for item in value]
-        # uniqueness
         if len(ids) != len(set(ids)):
             raise serializers.ValidationError("Ingredients must be unique.")
 
-        # existence
         existing = set(
             Ingredient.objects.filter(id__in=ids).values_list("id", flat=True)
         )
@@ -86,10 +86,8 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
                 f"Unknown ingredient ids: {', '.join(map(str, missing))}"
             )
 
-        # (amount >= 1 is already enforced by field min_value)
         return value
 
-    # ---- create/update ----
     def create(self, validated_data):
         items = validated_data.pop("ingredients")
         tags = validated_data.pop("tags")
@@ -131,24 +129,30 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
 
 
 class RecipeReadSerializer(serializers.ModelSerializer):
-    # Abridged; assume you already have User serializer with is_subscribed and avatar fields wired
     author = serializers.SerializerMethodField()
     tags = TagSerializer(many=True, read_only=True)
-    ingredients = IngredientInRecipeReadSerializer(source="recipe_ingredients", many=True, read_only=True)
+    ingredients = IngredientInRecipeReadSerializer(
+        source="recipe_ingredients", many=True, read_only=True
+    )
     is_favorited = serializers.SerializerMethodField()
     is_in_shopping_cart = serializers.SerializerMethodField()
 
     class Meta:
         model = Recipe
         fields = (
-            "id", "tags", "author", "ingredients",
-            "is_favorited", "is_in_shopping_cart",
-            "name", "image", "text", "cooking_time"
+            "id",
+            "tags",
+            "author",
+            "ingredients",
+            "is_favorited",
+            "is_in_shopping_cart",
+            "name",
+            "image",
+            "text",
+            "cooking_time",
         )
 
     def get_author(self, obj):
-        # plug your user serializer here
-        from users.serializers import UserSerializer
         return UserSerializer(obj.author, context=self.context).data
 
     def get_is_favorited(self, obj):

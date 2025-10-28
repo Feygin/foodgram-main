@@ -1,6 +1,5 @@
 from api.fields import Base64ImageField
 from rest_framework import serializers
-from users.serializers import UserSerializer
 
 from .models import Ingredient, IngredientInRecipe, Recipe, Tag
 
@@ -153,6 +152,7 @@ class RecipeReadSerializer(serializers.ModelSerializer):
         )
 
     def get_author(self, obj):
+        from users.serializers import UserSerializer
         return UserSerializer(obj.author, context=self.context).data
 
     def get_is_favorited(self, obj):

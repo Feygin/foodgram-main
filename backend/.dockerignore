@@ -1,0 +1,29 @@
+# Python cache & tooling
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pytest_cache/
+.coverage
+.mypy_cache/
+.idea/
+.vscode/
+
+# Virtualenvs
+.venv/
+venv/
+env/
+
+# Git & logs
+.git/
+.gitignore
+*.log
+
+# Django runtime bits
+media/
+static/
+*.sqlite3
+
+# Env files (we pass them via docker-compose)
+.env
+.env.*

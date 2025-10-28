@@ -1,0 +1,11 @@
+node_modules/
+.build/
+dist/
+.cache/
+coverage/
+*.log
+.git/
+.gitignore
+.vscode/
+.idea/
+.env

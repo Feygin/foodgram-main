@@ -1,0 +1,49 @@
+volumes:
+  pg_data_production:
+  static_volume:
+  media_volume:
+
+services:
+  db:
+    image: postgres:13
+    env_file: .env
+    volumes:
+      - pg_data_production:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-foodgram_user} -d ${POSTGRES_DB:-foodgram}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: always
+
+  backend:
+    image: feygin/foodgram_backend:latest
+    env_file: .env
+    volumes:
+      - static_volume:/static
+      - media_volume:/app/media
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: always
+
+  frontend:
+    env_file: .env
+    image: feygin/foodgram_frontend:latest
+    command: cp -r /app/build/. /static/
+    volumes:
+      - static_volume:/static
+    depends_on:
+      - backend
+    restart: "no"
+
+  gateway:
+    image: feygin/foodgram_gateway:latest
+    volumes:
+      - static_volume:/static
+      - media_volume:/media
+    ports:
+      - 8081:80
+    depends_on:
+      - backend
+    restart: always

@@ -68,14 +68,25 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: 18
-      - name: Install dependencies
+      # ⇩ create a temporary polyfill file just for CI
+      - name: Polyfill clearImmediate (CI-only)
         run: |
-          cd frontend/
-          npm ci  --legacy-peer-deps
-      - name: Test frontend
-        run: |
-          cd frontend/
-          npm run test
+          cd frontend
+          cat > test-polyfills.js <<'EOF'
+          if (typeof global.setImmediate === 'undefined') {
+            global.setImmediate = (fn, ...args) => setTimeout(fn, 0, ...args);
+          }
+          if (typeof global.clearImmediate === 'undefined') {
+            global.clearImmediate = (id) => clearTimeout(id);
+          }
+          EOF
+
+      # ⇩ preload the polyfill via NODE_OPTIONS and run tests
+      - name: Run tests
+        working-directory: frontend
+        env:
+          NODE_OPTIONS: --require ./test-polyfills.js
+        run: npm test -- --watchAll=false
 
   build_frontend_and_push_to_docker_hub:
     name: Push frontend Docker image to DockerHub

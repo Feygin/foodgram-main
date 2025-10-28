@@ -1,26 +1,31 @@
+from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import RegexValidator
 from django.db import models
-from django.conf import settings
+
 
 class User(AbstractUser):
     """
     Custom user with unique email and optional avatar.
-    Fields returned by API: id, email, username, first_name, last_name, is_subscribed, avatar
+    Fields returned by API: id, email, username,
+    first_name, last_name, is_subscribed, avatar
     """
     first_name = models.CharField(max_length=150, blank=False)
     last_name = models.CharField(max_length=150, blank=False)
     email = models.EmailField('email address', unique=True)
     avatar = models.ImageField(upload_to='avatars/', null=True, blank=True)
 
-    # Optional: tighten username with a simple validator akin to Djoser defaults
     username = models.CharField(
         max_length=150,
         unique=True,
         validators=[
             RegexValidator(
                 regex=r'^[\w.@+-]+$',
-                message='Enter a valid username. This value may contain only letters, numbers, and @/./+/-/_ characters.',
+                message=(
+                    'Enter a valid username. '
+                    'This value may contain only letters, '
+                    'numbers, and @/./+/-/_ characters.',
+                )
             )
         ],
     )
@@ -40,10 +45,12 @@ class Subscription(models.Model):
     Follower (user) subscribes to author (user). Unique pairs only.
     """
     user = models.ForeignKey(
-        settings.AUTH_USER_MODEL, related_name='follows', on_delete=models.CASCADE
+        settings.AUTH_USER_MODEL,
+        related_name='follows', on_delete=models.CASCADE
     )
     author = models.ForeignKey(
-        settings.AUTH_USER_MODEL, related_name='followers', on_delete=models.CASCADE
+        settings.AUTH_USER_MODEL,
+        related_name='followers', on_delete=models.CASCADE
     )
 
     class Meta:

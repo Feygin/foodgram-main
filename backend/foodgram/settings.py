@@ -9,12 +9,18 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/3.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv("SECRET_KEY", "dev-unsafe")
+SECRET_KEY = os.getenv('SECRET_KEY', 'dev-unsafe')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv("DEBUG", "0") == "1"
+DEBUG = os.getenv('DEBUG', '0') == '1'
 
-ALLOWED_HOSTS = ['109.252.30.150', '127.0.0.1', 'localhost', 'feygin-foodgram.viewdns.net']
+cloud_host = os.getenv('CLOUD_HOST')
+ALLOWED_HOSTS = [
+    '127.0.0.1',
+    'localhost',
+]
+if cloud_host:
+    ALLOWED_HOSTS.append(cloud_host)
 
 
 # Application definition
@@ -40,6 +46,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.locale.LocaleMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -130,9 +137,15 @@ DJOSER = {
 # Internationalization
 # https://docs.djangoproject.com/en/3.2/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
-
-TIME_ZONE = 'UTC'
+LANGUAGE_CODE = 'ru'
+TIME_ZONE = 'Europe/Moscow'
+LANGUAGES = [
+    ('ru', 'Русский'),
+    ('en', 'English'),
+]
+LOCALE_PATHS = [
+    BASE_DIR / 'locale',
+]
 
 USE_I18N = True
 

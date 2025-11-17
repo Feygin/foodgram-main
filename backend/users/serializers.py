@@ -1,7 +1,9 @@
 from api.fields import Base64ImageField
 from djoser.serializers import UserSerializer as DjoserUserSerializer
+from djoser.serializers import PasswordSerializer
+from djoser.serializers import UserCreateSerializer as DjoserUserCreateSerializer
+
 from recipes.models import Recipe
-from recipes.serializers import RecipeMinifiedSerializer
 from rest_framework import serializers
 
 from .models import Subscription, User
@@ -30,6 +32,15 @@ class UserSerializer(DjoserUserSerializer):
             and Subscription.objects.filter(user=request.user, author=user).exists()
         )
 
+class UserCreateSerializer(DjoserUserCreateSerializer):
+    """
+    Используем базовый сериализатор Djoser для создания пользователя.
+    Добавлять ничего не нужно — Djoser уже реализует хеширование пароля,
+    валидацию и создание пользователя.
+    """
+    class Meta(DjoserUserCreateSerializer.Meta):
+        model = User
+        fields = ("email", "id", "username", "first_name", "last_name", "password")
 
 class AvatarSerializer(serializers.Serializer):
     """
@@ -64,6 +75,7 @@ class UserWithRecipesSerializer(UserSerializer):
         read_only_fields = fields  # полностью только для чтения
 
     def get_recipes(self, user):
+        from recipes.serializers import RecipeMinifiedSerializer
         request = self.context.get("request")
         try:
             limit = int(request.query_params.get("recipes_limit", 0)) if request else 0

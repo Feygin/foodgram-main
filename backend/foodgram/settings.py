@@ -116,7 +116,7 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.TokenAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.AllowAny',
+        'rest_framework.permissions.IsAuthenticatedOrReadOnly',
     ],
     'DEFAULT_FILTER_BACKENDS': [
         'django_filters.rest_framework.DjangoFilterBackend',
@@ -132,6 +132,11 @@ DJOSER = {
         'current_user': 'users.serializers.UserSerializer',
         'user_create': 'users.serializers.UserCreateSerializer',
     },
+    'PERMISSIONS': {
+        'user': ['rest_framework.permissions.AllowAny'],
+        'user_list': ['rest_framework.permissions.AllowAny'],
+        'current_user': ['rest_framework.permissions.IsAuthenticated'],
+    }
 }
 
 # Internationalization

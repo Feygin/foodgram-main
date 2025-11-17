@@ -1,17 +1,17 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as DjangoUserAdmin
 from django.utils.safestring import mark_safe
-from django.utils.translation import gettext_lazy as _
 from django.db.models import Exists, OuterRef
 
 from .models import User, Subscription
 
+
 class HasRecipesFilter(admin.SimpleListFilter):
-    title = _('есть рецепты')
+    title = 'есть рецепты'
     parameter_name = 'has_recipes'
 
     def lookups(self, request, model_admin):
-        return (('yes', _('Да')), ('no', _('Нет')))
+        return (('yes', 'Да'), ('no', 'Нет'))
 
     def queryset(self, request, queryset):
         from recipes.models import Recipe
@@ -24,11 +24,11 @@ class HasRecipesFilter(admin.SimpleListFilter):
 
 
 class HasSubscriptionsFilter(admin.SimpleListFilter):
-    title = _('есть подписки')
+    title = 'есть подписки'
     parameter_name = 'has_subscriptions'
 
     def lookups(self, request, model_admin):
-        return (('yes', _('Да')), ('no', _('Нет')))
+        return (('yes', 'Да'), ('no', 'Нет'))
 
     def queryset(self, request, queryset):
         exists_qs = Subscription.objects.filter(user=OuterRef('pk'))
@@ -40,11 +40,11 @@ class HasSubscriptionsFilter(admin.SimpleListFilter):
 
 
 class HasSubscribersFilter(admin.SimpleListFilter):
-    title = _('есть подписчики')
+    title = 'есть подписчики'
     parameter_name = 'has_subscribers'
 
     def lookups(self, request, model_admin):
-        return (('yes', _('Да')), ('no', _('Нет')))
+        return (('yes', 'Да'), ('no', 'Нет'))
 
     def queryset(self, request, queryset):
         exists_qs = Subscription.objects.filter(author=OuterRef('pk'))
@@ -59,9 +59,9 @@ class HasSubscribersFilter(admin.SimpleListFilter):
 class UserAdmin(DjangoUserAdmin):
     fieldsets = (
         (None, {"fields": ("email", "password")}),
-        (_("Personal info"), {"fields": ("username", "first_name", "last_name", "avatar")}),
-        (_("Permissions"), {"fields": ("is_active", "is_staff", "is_superuser", "groups", "user_permissions")}),
-        (_("Important dates"), {"fields": ("last_login", "date_joined")}),
+        ("Personal info", {"fields": ("username", "first_name", "last_name", "avatar")}),
+        ("Permissions", {"fields": ("is_active", "is_staff", "is_superuser", "groups", "user_permissions")}),
+        ("Important dates", {"fields": ("last_login", "date_joined")}),
     )
     add_fieldsets = (
         (None, {
@@ -93,32 +93,33 @@ class UserAdmin(DjangoUserAdmin):
     search_fields = ("email", "username", "first_name", "last_name")
     ordering = ("id",)
 
-    @admin.display(description=_("ФИО"))
+    @admin.display(description="ФИО")
     def full_name(self, obj):
-        """Return user's full name (first + last)."""
         return f"{obj.first_name} {obj.last_name}"
 
-    @admin.display(description=_("Аватар"))
+    @admin.display(description="Аватар")
     def avatar_preview(self, obj):
         if getattr(obj, "avatar", None):
             try:
                 url = obj.avatar.url
-                return mark_safe(f'<img src="{url}" width="48" height="48" '
-                                 f'style="border-radius:50%;object-fit:cover" />')
+                return mark_safe(
+                    f'<img src="{url}" width="48" height="48" '
+                    f'style="border-radius:50%;object-fit:cover" />'
+                )
             except Exception:
                 pass
         return "—"
 
-    @admin.display(description=_("Рецептов"))
+    @admin.display(description="Рецептов")
     def recipes_count(self, obj):
         from recipes.models import Recipe
         return Recipe.objects.filter(author=obj).count()
 
-    @admin.display(description=_("Подписок"))
+    @admin.display(description="Подписок")
     def subscriptions_count(self, obj):
         return Subscription.objects.filter(user=obj).count()
 
-    @admin.display(description=_("Подписчиков"))
+    @admin.display(description="Подписчиков")
     def subscribers_count(self, obj):
         return Subscription.objects.filter(author=obj).count()
 

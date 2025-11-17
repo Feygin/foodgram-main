@@ -1,13 +1,13 @@
 from api.pagination import LimitPageNumberPagination
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
-from django.utils.translation import gettext as _
 from djoser.views import UserViewSet as DjoserUserViewSet
-from djoser.serializers import UserCreateSerializer, PasswordSerializer
+from djoser.serializers import UserCreateSerializer
 from rest_framework import permissions, status
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
 
 from .models import Subscription
 from .serializers import AvatarSerializer, UserSerializer, UserWithRecipesSerializer
@@ -22,13 +22,17 @@ class UsersViewSet(DjoserUserViewSet):
     Добавлены только то, чего нет у Djoser: аватар, список подписок, подписка/отписка.
     """
     queryset = User.objects.all()
-    permission_classes = (permissions.AllowAny,)
     pagination_class = LimitPageNumberPagination
     serializer_class = UserSerializer  # базовый сериализатор для list/retrieve
 
     # По требованию ревьюера: perform-версия create
     def perform_create(self, serializer: UserCreateSerializer):
         serializer.save()
+
+    @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
+    def me(self, request, *args, **kwargs):
+        """Запрещаем доступ анонимам. Djoser-код полностью переиспользуем."""
+        return super().me(request, *args, **kwargs)
 
     @action(detail=False, methods=['put', 'delete'], url_path='me/avatar', permission_classes=[permissions.IsAuthenticated])
     def avatar(self, request):
@@ -48,8 +52,7 @@ class UsersViewSet(DjoserUserViewSet):
 
     @action(detail=False, methods=['get'], url_path='subscriptions', permission_classes=[permissions.IsAuthenticated])
     def subscriptions(self, request):
-        # Используем related_name: у автора related_name='subscriptions', поэтому:
-        # все авторы, на которых подписан текущий пользователь
+        # Все авторы, на которых подписан текущий пользователь
         authors_qs = User.objects.filter(subscriptions__user=request.user)
         page = self.paginate_queryset(authors_qs)
         serializer = UserWithRecipesSerializer(page, many=True, context={'request': request})
@@ -57,24 +60,26 @@ class UsersViewSet(DjoserUserViewSet):
 
     @action(detail=True, methods=['post', 'delete'], url_path='subscribe', permission_classes=[permissions.IsAuthenticated])
     def subscribe(self, request, pk=None):
-        # Ранний возврат для DELETE
+        # DELETE — отписка
         if request.method.lower() == 'delete':
-            # Никаких лишних запросов к автору: удаляем по ключам
             get_object_or_404(Subscription, user=request.user, author_id=pk).delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
 
-        # POST — проверки и создание
+        # POST — проверки
         if str(request.user.pk) == str(pk):
-            # перевод + валидационное исключение вместо 400 вручную
-            raise ValidationError({'detail': _('Нельзя подписаться на самого себя.')})
+            raise ValidationError({'detail': 'Нельзя подписаться на самого себя.'})
 
-        # попробуем создать подписку; если уже есть — сообщаем валидатором
+        # Попытка создать подписку
         _, created = Subscription.objects.get_or_create(user=request.user, author_id=pk)
         if not created:
-            # Уточняем «на кого» уже подписка
             author = get_object_or_404(User, pk=pk)
-            raise ValidationError({'detail': _('Подписка на автора "%(name)s" уже существует.') % {'name': author.username}})
+            raise ValidationError({
+                'detail': f'Подписка на автора "{author.username}" уже существует.'
+            })
 
-        # Возвращаем публичные данные автора (+рецепты/счётчик)
+        # Возвращаем данные автора
         author = get_object_or_404(User, pk=pk)
-        return Response(UserWithRecipesSerializer(author, context={'request': request}).data, status=status.HTTP_201_CREATED)
+        return Response(
+            UserWithRecipesSerializer(author, context={'request': request}).data,
+            status=status.HTTP_201_CREATED
+        )

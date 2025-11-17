@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.db import models
 from django.contrib.auth.models import AbstractUser
-from django.core.validators import RegexValidator
+from django.core.validators import RegexValidator, MinValueValidator
 
 class User(AbstractUser):
     """
@@ -151,7 +151,10 @@ class Recipe(models.Model):
     name = models.CharField("Название", max_length=200)
     text = models.TextField("Описание")
     image = models.ImageField("Изображение", upload_to="recipes/")
-    cooking_time = models.PositiveIntegerField("Время приготовления, мин")
+    cooking_time = models.PositiveIntegerField(
+        "Время приготовления, мин",
+        validators=[MinValueValidator(1)],
+    )
     tags = models.ManyToManyField(
         Tag,
         related_name="recipes",
@@ -186,7 +189,10 @@ class IngredientInRecipe(models.Model):
         related_name="recipe_ingredients",  # повторяем значение со строки выше
         verbose_name="Ингредиент",
     )
-    amount = models.PositiveIntegerField("Количество")
+    amount = models.PositiveIntegerField(
+        "Количество",
+        validators=[MinValueValidator(1)],
+    )
 
     class Meta:
         verbose_name = "Ингредиент в рецепте"

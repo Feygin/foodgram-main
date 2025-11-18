@@ -191,6 +191,11 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
         return recipe
 
     def update(self, instance, validated_data):
+        if "ingredients" not in validated_data or "tags" not in validated_data:
+            raise serializers.ValidationError({
+                "ingredients": ["This field is required."],
+                "tags": ["This field is required."]
+            })
         items = validated_data.pop("ingredients")
         tags = validated_data.pop("tags")
         instance = super().update(instance, validated_data)
@@ -245,14 +250,14 @@ class RecipeReadSerializer(serializers.ModelSerializer):
         user = self.context["request"].user
         return (
             user.is_authenticated
-            and recipe.favorited_by.filter(user=user).exists()
+            and recipe.favorites.filter(user=user).exists()
         )
 
     def get_is_in_shopping_cart(self, recipe):
         user = self.context["request"].user
         return (
             user.is_authenticated
-            and recipe.in_carts.filter(user=user).exists()
+            and recipe.shopping_cart.filter(user=user).exists()
         )
 
 

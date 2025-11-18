@@ -16,6 +16,9 @@ from rest_framework.filters import SearchFilter
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from io import BytesIO
+from django.http import Http404
+from .filters import RecipeFilter, IngredientFilter
 
 from .models import (Favorite, Ingredient, IngredientInRecipe, Recipe,
                      ShoppingCart, Subscription, Tag)
@@ -93,32 +96,51 @@ class UsersViewSet(DjoserUserViewSet):
     @action(detail=False, methods=['get'], url_path='subscriptions', permission_classes=[permissions.IsAuthenticated])
     def subscriptions(self, request):
         # Все авторы, на которых подписан текущий пользователь
-        authors_qs = User.objects.filter(subscriptions__user=request.user)
+        authors_qs = User.objects.filter(authors__user=request.user)
         page = self.paginate_queryset(authors_qs)
         serializer = UserWithRecipesSerializer(page, many=True, context={'request': request})
         return self.get_paginated_response(serializer.data)
 
-    @action(detail=True, methods=['post', 'delete'], url_path='subscribe', permission_classes=[permissions.IsAuthenticated])
-    def subscribe(self, request, pk=None):
+    @action(
+        detail=True,
+        methods=['post', 'delete'],
+        url_path='subscribe',
+        permission_classes=[permissions.IsAuthenticated]
+    )
+    def subscribe(self, request, *args, **kwargs):
+        # Получаем ID автора, учитывая lookup_field="id" у Djoser
+        author_id = kwargs.get(self.lookup_field)
+
+        # Проверка существования автора
+        author = get_object_or_404(User, pk=author_id)
+
         # DELETE — отписка
         if request.method.lower() == 'delete':
-            get_object_or_404(Subscription, user=request.user, author_id=pk).delete()
+            try:
+                get_object_or_404(Subscription, user=request.user, author_id=author_id).delete()
+            except Http404:
+                return Response(
+                    {"detail": "Вы не подписаны на этого пользователя."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
             return Response(status=status.HTTP_204_NO_CONTENT)
 
-        # POST — проверки
-        if str(request.user.pk) == str(pk):
+        # POST — проверка
+        if str(request.user.pk) == str(author_id):
             raise ValidationError({'detail': 'Нельзя подписаться на самого себя.'})
 
-        # Попытка создать подписку
-        _, created = Subscription.objects.get_or_create(user=request.user, author_id=pk)
+        # Создание подписки
+        _, created = Subscription.objects.get_or_create(
+            user=request.user,
+            author_id=author_id
+        )
         if not created:
-            author = get_object_or_404(User, pk=pk)
+            author = get_object_or_404(User, pk=author_id)
             raise ValidationError({
                 'detail': f'Подписка на автора "{author.username}" уже существует.'
             })
 
-        # Возвращаем данные автора
-        author = get_object_or_404(User, pk=pk)
+        author = get_object_or_404(User, pk=author_id)
         return Response(
             UserWithRecipesSerializer(author, context={'request': request}).data,
             status=status.HTTP_201_CREATED
@@ -158,9 +180,8 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = (AllowAny,)
     pagination_class = None
 
-    # DRF-фильтр вместо get_queryset
-    filter_backends = (SearchFilter,)
-    search_fields = ('^name',)
+    filter_backends = (DjangoFilterBackend,)
+    filterset_class = IngredientFilter
 
 
 # ---------------------------------------------------------
@@ -181,10 +202,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     # DRF-фильтры вместо get_queryset
     filter_backends = (DjangoFilterBackend,)
-    filterset_fields = {
-        "author": ["exact"],
-        "tags__slug": ["exact"],
-    }
+    filterset_class = RecipeFilter
 
     def get_serializer_class(self):
         if self.action in ("list", "retrieve"):
@@ -205,17 +223,24 @@ class RecipeViewSet(viewsets.ModelViewSet):
             ShoppingCart: 'Рецепт "{name}" уже в списке покупок.',
         }
 
+        # СНАЧАЛА проверяем, что рецепт существует (или 404)
+        recipe = get_object_or_404(Recipe, pk=pk)
+
         # ---- DELETE — ранний возврат ----
         if request.method == "DELETE":
-            get_object_or_404(model, user=request.user, recipe_id=pk).delete()
+            try:
+                get_object_or_404(model, user=request.user, recipe=recipe).delete()
+            except Http404:
+                return Response(
+                    {"detail": "Рецепта нет в этом списке."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
             return Response(status=status.HTTP_204_NO_CONTENT)
-
         # ---- POST ----
         _, created = model.objects.get_or_create(
             user=request.user,
-            recipe_id=pk
+            recipe=recipe,           # вместо recipe_id=pk
         )
-        recipe = get_object_or_404(Recipe, pk=pk)
 
         if not created:
             template = already_messages.get(
@@ -228,7 +253,10 @@ class RecipeViewSet(viewsets.ModelViewSet):
             )
 
         return Response(
-            RecipeMinifiedSerializer(recipe, context={"request": request}).data,
+            RecipeMinifiedSerializer(
+                recipe,
+                context={"request": request},
+            ).data,
             status=status.HTTP_201_CREATED,
         )
 
@@ -265,7 +293,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
         # Продукты
         products = (
             IngredientInRecipe.objects.filter(
-                recipe__in_carts__user=request.user
+                recipe__shopping_cart__user=request.user
             )
             .values(
                 name=F("ingredient__name"),
@@ -277,15 +305,16 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
         # Рецепты
         recipes = (
-            Recipe.objects.filter(in_carts__user=request.user)
+            Recipe.objects.filter(shopping_cart__user=request.user)
             .select_related("author")
             .order_by("name")
         )
 
         text = render_shopping_list(products, recipes)
-
+        buffer = BytesIO(text.encode("utf-8"))
         return FileResponse(
-            text,
+            # text,
+            buffer,
             as_attachment=True,
             filename="shopping_list.txt"
         )

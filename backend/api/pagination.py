@@ -1,4 +1,3 @@
-# api/pagination.py  (create this if you don’t have it)
 from rest_framework.pagination import PageNumberPagination
 
 

@@ -1,6 +1,6 @@
 import string
 
-from api.pagination import LimitPageNumberPagination
+from .pagination import LimitPageNumberPagination
 from django.contrib.auth import get_user_model
 from django.db.models import F, Sum
 from django.http import FileResponse
@@ -20,7 +20,7 @@ from io import BytesIO
 from django.http import Http404
 from .filters import RecipeFilter, IngredientFilter
 
-from .models import (Favorite, Ingredient, IngredientInRecipe, Recipe,
+from recipes.models import (Favorite, Ingredient, IngredientInRecipe, Recipe,
                      ShoppingCart, Subscription, Tag)
 from .report import render_shopping_list
 from .serializers import (AvatarSerializer, IngredientSerializer,

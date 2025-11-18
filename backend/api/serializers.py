@@ -1,10 +1,10 @@
-from api.fields import Base64ImageField
+from .fields import Base64ImageField
 from djoser.serializers import UserSerializer as DjoserUserSerializer
 from djoser.serializers import PasswordSerializer
 from djoser.serializers import UserCreateSerializer as DjoserUserCreateSerializer
 from rest_framework import serializers
 
-from .models import Ingredient, IngredientInRecipe, Recipe, Tag, Subscription, User
+from recipes.models import Ingredient, IngredientInRecipe, Recipe, Tag, Subscription, User
 
 
 MIN_INGREDIENT_AMOUNT = 1
@@ -76,7 +76,7 @@ class UserWithRecipesSerializer(UserSerializer):
         read_only_fields = fields  # полностью только для чтения
 
     def get_recipes(self, user):
-        from recipes.serializers import RecipeMinifiedSerializer
+        from .serializers import RecipeMinifiedSerializer
         request = self.context.get("request")
         try:
             limit = int(request.query_params.get("recipes_limit", 0)) if request else 0

@@ -2,10 +2,9 @@ import string
 
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
+from recipes.models import Recipe
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
-from recipes.models import Recipe
 
 _ALPHABET = string.digits + string.ascii_lowercase + string.ascii_uppercase
 _BASE = len(_ALPHABET)

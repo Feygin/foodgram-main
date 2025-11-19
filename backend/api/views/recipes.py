@@ -1,23 +1,33 @@
 from io import BytesIO
 
+from api.filters import IngredientFilter, RecipeFilter
+from api.pagination import LimitPageNumberPagination
+from api.report import render_shopping_list
+from api.serializers import (
+    IngredientSerializer,
+    RecipeMinifiedSerializer,
+    RecipeReadSerializer,
+    RecipeWriteSerializer,
+    TagSerializer,
+)
 from django.db.models import F, Sum
 from django.http import FileResponse
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django_filters.rest_framework import DjangoFilterBackend
-from recipes.models import (Favorite, Ingredient, IngredientInRecipe, Recipe,
-                            ShoppingCart, Tag)
+from recipes.models import (
+    Favorite,
+    Ingredient,
+    IngredientInRecipe,
+    Recipe,
+    ShoppingCart,
+    Tag,
+)
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
-from api.filters import IngredientFilter, RecipeFilter
-from api.pagination import LimitPageNumberPagination
-from api.report import render_shopping_list
-from api.serializers import (IngredientSerializer, RecipeMinifiedSerializer,
-                             RecipeReadSerializer, RecipeWriteSerializer,
-                             TagSerializer)
 from .shortlinks import encode_id
 
 

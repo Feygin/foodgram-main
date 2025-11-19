@@ -1,18 +1,20 @@
+from api.pagination import LimitPageNumberPagination
+from api.serializers import (
+    AvatarSerializer,
+    UserSerializer,
+    UserWithRecipesSerializer,
+)
 from django.contrib.auth import get_user_model
 from django.http import Http404
 from django.shortcuts import get_object_or_404
 from djoser.serializers import UserCreateSerializer
 from djoser.views import UserViewSet as DjoserUserViewSet
+from recipes.models import Subscription
 from rest_framework import permissions, status
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-
-from api.pagination import LimitPageNumberPagination
-from api.serializers import (AvatarSerializer, UserSerializer,
-                             UserWithRecipesSerializer)
-from recipes.models import Subscription
 
 User = get_user_model()
 

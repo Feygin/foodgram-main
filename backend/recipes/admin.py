@@ -2,8 +2,16 @@ from django.contrib import admin
 from django.db.models import Count, Exists, OuterRef
 from django.utils.safestring import mark_safe
 
-from .models import (Favorite, Ingredient, IngredientInRecipe, Recipe,
-                     ShoppingCart, Subscription, Tag, User)
+from .models import (
+    Favorite,
+    Ingredient,
+    IngredientInRecipe,
+    Recipe,
+    ShoppingCart,
+    Subscription,
+    Tag,
+    User,
+)
 
 # ------------------------
 #  Custom Admin Filters

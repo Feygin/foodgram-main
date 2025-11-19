@@ -96,5 +96,9 @@
 python manage.py runserver --settings=foodgram.settings_local
 ```
 
-Для импортов данных и миграций аналогично.
+**Endpoints**
+
+- Сайт: http://127.0.0.1:8081/
+- API: http://127.0.0.1:8081/api/
+- Админка: http://127.0.0.1:8081/admin/
 

@@ -2,21 +2,13 @@ from django.contrib import admin
 from django.db.models import Count, Exists, OuterRef
 from django.utils.safestring import mark_safe
 
-from .models import (
-    User,
-    Subscription,
-    Tag,
-    Ingredient,
-    IngredientInRecipe,
-    Recipe,
-    Favorite,
-    ShoppingCart,
-)
-
+from .models import (Favorite, Ingredient, IngredientInRecipe, Recipe,
+                     ShoppingCart, Subscription, Tag, User)
 
 # ------------------------
 #  Custom Admin Filters
 # ------------------------
+
 
 class HasRecipesFilter(admin.SimpleListFilter):
     title = "есть рецепты"
@@ -70,15 +62,30 @@ class HasSubscribersFilter(admin.SimpleListFilter):
 
 
 # ------------------------
-#  User Admin
+#  Admin
 # ------------------------
+
 
 @admin.register(User)
 class UserAdmin(admin.ModelAdmin):
     fieldsets = (
         (None, {"fields": ("email", "password")}),
-        ("Персональная информация", {"fields": ("username", "first_name", "last_name", "avatar")}),
-        ("Права", {"fields": ("is_active", "is_staff", "is_superuser", "groups", "user_permissions")}),
+        (
+            "Персональная информация",
+            {"fields": ("username", "first_name", "last_name", "avatar")},
+        ),
+        (
+            "Права",
+            {
+                "fields": (
+                    "is_active",
+                    "is_staff",
+                    "is_superuser",
+                    "groups",
+                    "user_permissions",
+                )
+            },
+        ),
         ("Важные даты", {"fields": ("last_login", "date_joined")}),
     )
 
@@ -133,7 +140,10 @@ class UserAdmin(admin.ModelAdmin):
     def avatar_preview(self, user):
         if getattr(user, "avatar", None):
             try:
-                return f'<img src="{user.avatar.url}" width="48" height="48" style="border-radius:50%;object-fit:cover;">'
+                return (
+                    f'<img src="{user.avatar.url}" width="48" height="48" '
+                    'style="border-radius:50%;object-fit:cover;">'
+                )
             except Exception:
                 pass
         return "—"
@@ -163,20 +173,12 @@ class SubscriptionAdmin(admin.ModelAdmin):
     list_select_related = ("user", "author")
 
 
-# ------------------------
-#  Inline Models
-# ------------------------
-
 class IngredientInRecipeInline(admin.TabularInline):
     model = IngredientInRecipe
     extra = 0
     autocomplete_fields = ("ingredient",)
     min_num = 1
 
-
-# ------------------------
-#  Tag Admin
-# ------------------------
 
 @admin.register(Tag)
 class TagAdmin(admin.ModelAdmin):
@@ -190,10 +192,6 @@ class TagAdmin(admin.ModelAdmin):
         return tag.recipes.count()
 
 
-# ------------------------
-#  Ingredient Admin
-# ------------------------
-
 @admin.register(Ingredient)
 class IngredientAdmin(admin.ModelAdmin):
     list_display = ("id", "name", "measurement_unit", "recipes_count")
@@ -204,10 +202,6 @@ class IngredientAdmin(admin.ModelAdmin):
     def recipes_count(self, ingredient):
         return ingredient.recipe_ingredients.count()
 
-
-# ------------------------
-#  Recipe Admin (big changes)
-# ------------------------
 
 @admin.register(Recipe)
 class RecipeAdmin(admin.ModelAdmin):
@@ -252,12 +246,10 @@ class RecipeAdmin(admin.ModelAdmin):
         "favorites_total",
     )
 
-    # Prefetch favorites count
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         return qs.annotate(_fav_count=Count("favorite"))
 
-    # Favorites count in list_display
     @admin.display(description="В избранном", ordering="_fav_count")
     def favorites_count(self, recipe):
         return getattr(recipe, "_fav_count", recipe.favorite.count())
@@ -266,7 +258,6 @@ class RecipeAdmin(admin.ModelAdmin):
     def favorites_total(self, recipe):
         return recipe.favorite.count()
 
-    # Ingredients HTML list
     @admin.display(description="Продукты")
     @mark_safe
     def ingredients_html(self, recipe):
@@ -280,21 +271,21 @@ class RecipeAdmin(admin.ModelAdmin):
         html += "</ul>"
         return html
 
-    # Tags HTML list
     @admin.display(description="Теги")
     @mark_safe
     def tags_html(self, recipe):
-        html = ", ".join(f"<span>{tag.name}</span>" for tag in recipe.tags.all())
+        html = ", ".join(
+            f"<span>{tag.name}</span>" for tag in recipe.tags.all())
         return html or "—"
 
-    # Image preview
     @admin.display(description="Картинка")
     @mark_safe
     def image_preview(self, recipe):
         try:
             return (
                 f'<img src="{recipe.image.url}" '
-                f'width="80" height="80" style="object-fit:cover;border-radius:6px;">'
+                'width="80" height="80" '
+                'style="object-fit:cover;border-radius:6px;">'
             )
         except Exception:
             return "—"
@@ -304,10 +295,6 @@ class RecipeAdmin(admin.ModelAdmin):
     def image_preview_admin(self, recipe):
         return self.image_preview(recipe)
 
-
-# ------------------------
-#  Favorite and ShoppingCart (merged registration)
-# ------------------------
 
 @admin.register(Favorite, ShoppingCart)
 class UserRecipeRelationAdmin(admin.ModelAdmin):
@@ -322,10 +309,6 @@ class UserRecipeRelationAdmin(admin.ModelAdmin):
     )
     autocomplete_fields = ("user", "recipe")
 
-
-# ------------------------
-#  IngredientInRecipe Admin
-# ------------------------
 
 @admin.register(IngredientInRecipe)
 class IngredientInRecipeAdmin(admin.ModelAdmin):

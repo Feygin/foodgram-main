@@ -1,7 +1,6 @@
 import django_filters
-from recipes.models import Recipe, Ingredient
-from django_filters.rest_framework import DjangoFilterBackend
-import django_filters
+from recipes.models import Ingredient, Recipe
+
 
 class IngredientFilter(django_filters.FilterSet):
     name = django_filters.CharFilter(
@@ -13,11 +12,11 @@ class IngredientFilter(django_filters.FilterSet):
         model = Ingredient
         fields = ("name",)
 
+
 class RecipeFilter(django_filters.FilterSet):
     tags = django_filters.AllValuesMultipleFilter(field_name="tags__slug")
     author = django_filters.NumberFilter(field_name="author_id")
 
-    # Меняем BooleanFilter → NumberFilter
     is_in_shopping_cart = django_filters.NumberFilter(method="filter_in_cart")
     is_favorited = django_filters.NumberFilter(method="filter_fav")
 
@@ -41,4 +40,3 @@ class RecipeFilter(django_filters.FilterSet):
     class Meta:
         model = Recipe
         fields = ("tags", "author", "is_in_shopping_cart", "is_favorited")
-

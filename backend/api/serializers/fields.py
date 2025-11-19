@@ -7,14 +7,9 @@ from rest_framework import serializers
 
 
 class Base64ImageField(serializers.ImageField):
-    """
-    Accepts a data URL or raw base64 bytes and returns a Django File.
-    Compatible with DRF 3.12 / Django 3.2. No external deps.
-    """
 
     def to_internal_value(self, data):
         if isinstance(data, str) and data.startswith("data:image"):
-            # data:image/png;base64,xxxx
             header, b64data = data.split(";base64,")
             data = b64data
 

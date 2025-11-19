@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from django.template import Engine, Context
+from django.template import Context, Engine
 
 TEMPLATE = """
 Список покупок
@@ -22,10 +22,12 @@ def render_shopping_list(products, recipes):
     engine = Engine.get_default()
     template = engine.from_string(TEMPLATE)
 
-    context = Context({
-        "date": datetime.now().strftime("%d.%m.%Y %H:%M"),
-        "products": list(enumerate(products, start=1)),
-        "recipes": list(enumerate(recipes, start=1)),
-    })
+    context = Context(
+        {
+            "date": datetime.now().strftime("%d.%m.%Y %H:%M"),
+            "products": list(enumerate(products, start=1)),
+            "recipes": list(enumerate(recipes, start=1)),
+        }
+    )
 
     return template.render(context)

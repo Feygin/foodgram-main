@@ -1,4 +1,5 @@
 import json
+
 from django.core.management.base import BaseCommand, CommandError
 
 
@@ -27,7 +28,8 @@ class BaseLoadFromJSONCommand(BaseCommand):
             )
 
             for item in data:
-                key = tuple(item[field] for field in self.fields_for_unique_lookup)
+                key = tuple(
+                    item[field] for field in self.fields_for_unique_lookup)
                 if key in existing:
                     continue
                 existing.add(key)
@@ -38,8 +40,7 @@ class BaseLoadFromJSONCommand(BaseCommand):
 
             self.stdout.write(
                 self.style.SUCCESS(
-                    f"✓ Loaded {len(created)} objects from {file_path}"
-                )
+                    f"✓ Loaded {len(created)} objects from {file_path}")
             )
 
         except Exception as error:

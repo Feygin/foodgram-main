@@ -22,11 +22,6 @@ ALLOWED_HOSTS = [
 if cloud_host:
     ALLOWED_HOSTS.append(cloud_host)
 
-CSRF_TRUSTED_ORIGINS = [
-    f'http://{cloud_host}',
-    f'https://{cloud_host}',
-]
-
 # Application definition
 
 INSTALLED_APPS = [

@@ -124,6 +124,13 @@ class Tag(models.Model):
 class Ingredient(models.Model):
     name = models.CharField("Название", max_length=128)
     measurement_unit = models.CharField("Единица измерения", max_length=64)
+    recipes = models.ManyToManyField(
+        "Recipe",
+        through="IngredientInRecipe",
+        through_fields=("ingredient", "recipe"),
+        related_name="ingredients",
+        verbose_name="Рецепты",
+    )
 
     class Meta:
         verbose_name = "Ингредиент"
@@ -173,7 +180,6 @@ class Recipe(models.Model):
 class IngredientInRecipe(models.Model):
     """
     Связующая модель для рецепта и ингредиента с количеством.
-    related_name у обеих сторон повторяет одно значение по требованию ревьюера.
     """
     recipe = models.ForeignKey(
         Recipe,
@@ -184,7 +190,7 @@ class IngredientInRecipe(models.Model):
     ingredient = models.ForeignKey(
         Ingredient,
         on_delete=models.CASCADE,
-        related_name="recipe_ingredients",  # повторяем значение со строки выше
+        related_name="recipe_ingredients",
         verbose_name="Ингредиент",
     )
     amount = models.PositiveIntegerField(

@@ -13,60 +13,60 @@ from .models import (
     User,
 )
 
-# ------------------------
-#  Custom Admin Filters
-# ------------------------
+class BaseExistsFilter(admin.SimpleListFilter):
+    YES_NO = (("yes", "Да"), ("no", "Нет"))
+
+    title = None
+    parameter_name = None
+    related_field = None
+    exists_model = None
+    annotate_field = None
+
+    def lookups(self, request, model_admin):
+        return self.YES_NO
+
+    def queryset(self, request, queryset):
+        value = self.value()
+        if value not in ("yes", "no"):
+            return queryset
+
+        exists_qs = self.exists_model.objects.filter(
+            **{self.related_field: OuterRef("pk")}
+        )
+
+        queryset = queryset.annotate(
+            **{self.annotate_field: Exists(exists_qs)}
+        )
+
+        return queryset.filter(**{self.annotate_field: value == "yes"})
 
 
-class HasRecipesFilter(admin.SimpleListFilter):
+
+class HasRecipesFilter(BaseExistsFilter):
     title = "есть рецепты"
     parameter_name = "has_recipes"
-
-    def lookups(self, request, model_admin):
-        return (("yes", "Да"), ("no", "Нет"))
-
-    def queryset(self, request, queryset):
-        exists_qs = Recipe.objects.filter(author=OuterRef("pk"))
-        queryset = queryset.annotate(has_recipes=Exists(exists_qs))
-        if self.value() == "yes":
-            return queryset.filter(has_recipes=True)
-        if self.value() == "no":
-            return queryset.filter(has_recipes=False)
-        return queryset
+    related_field = "author"
+    exists_model = Recipe
+    annotate_field = "has_recipes"
 
 
-class HasSubscriptionsFilter(admin.SimpleListFilter):
+
+class HasSubscriptionsFilter(BaseExistsFilter):
     title = "есть подписки"
     parameter_name = "has_subscriptions"
-
-    def lookups(self, request, model_admin):
-        return (("yes", "Да"), ("no", "Нет"))
-
-    def queryset(self, request, queryset):
-        exists_qs = Subscription.objects.filter(user=OuterRef("pk"))
-        queryset = queryset.annotate(has_subs=Exists(exists_qs))
-        if self.value() == "yes":
-            return queryset.filter(has_subs=True)
-        if self.value() == "no":
-            return queryset.filter(has_subs=False)
-        return queryset
+    related_field = "user"
+    exists_model = Subscription
+    annotate_field = "has_subs"
 
 
-class HasSubscribersFilter(admin.SimpleListFilter):
+
+class HasSubscribersFilter(BaseExistsFilter):
     title = "есть подписчики"
     parameter_name = "has_subscribers"
+    related_field = "author"
+    exists_model = Subscription
+    annotate_field = "has_followers"
 
-    def lookups(self, request, model_admin):
-        return (("yes", "Да"), ("no", "Нет"))
-
-    def queryset(self, request, queryset):
-        exists_qs = Subscription.objects.filter(author=OuterRef("pk"))
-        queryset = queryset.annotate(has_followers=Exists(exists_qs))
-        if self.value() == "yes":
-            return queryset.filter(has_followers=True)
-        if self.value() == "no":
-            return queryset.filter(has_followers=False)
-        return queryset
 
 
 # ------------------------
@@ -74,8 +74,15 @@ class HasSubscribersFilter(admin.SimpleListFilter):
 # ------------------------
 
 
+class BaseRecipeRelationAdmin(admin.ModelAdmin):
+
+    @admin.display(description="Рецептов")
+    def recipes_count(self, obj):
+        return obj.recipes.count()
+
+
 @admin.register(User)
-class UserAdmin(admin.ModelAdmin):
+class UserAdmin(BaseRecipeRelationAdmin):
     fieldsets = (
         (None, {"fields": ("email", "password")}),
         (
@@ -123,7 +130,6 @@ class UserAdmin(admin.ModelAdmin):
         "recipes_count",
         "subscriptions_count",
         "subscribers_count",
-        "is_staff",
     )
 
     list_filter = (
@@ -133,7 +139,6 @@ class UserAdmin(admin.ModelAdmin):
         "is_staff",
         "is_superuser",
         "is_active",
-        "groups",
     )
 
     search_fields = ("email", "username", "first_name", "last_name")
@@ -147,18 +152,11 @@ class UserAdmin(admin.ModelAdmin):
     @mark_safe
     def avatar_preview(self, user):
         if getattr(user, "avatar", None):
-            try:
-                return (
-                    f'<img src="{user.avatar.url}" width="48" height="48" '
-                    'style="border-radius:50%;object-fit:cover;">'
-                )
-            except Exception:
-                pass
+            return (
+                f'<img src="{user.avatar.url}" width="48" height="48" '
+                'style="border-radius:50%;object-fit:cover;">'
+            )
         return "—"
-
-    @admin.display(description="Рецептов")
-    def recipes_count(self, user):
-        return Recipe.objects.filter(author=user).count()
 
     @admin.display(description="Подписок")
     def subscriptions_count(self, user):
@@ -189,26 +187,20 @@ class IngredientInRecipeInline(admin.TabularInline):
 
 
 @admin.register(Tag)
-class TagAdmin(admin.ModelAdmin):
+class TagAdmin(BaseRecipeRelationAdmin):
+
     list_display = ("id", "name", "slug", "recipes_count")
     search_fields = ("name", "slug")
     prepopulated_fields = {"slug": ("name",)}
     ordering = ("name",)
 
-    @admin.display(description="Рецептов")
-    def recipes_count(self, tag):
-        return tag.recipes.count()
-
 
 @admin.register(Ingredient)
-class IngredientAdmin(admin.ModelAdmin):
+class IngredientAdmin(BaseRecipeRelationAdmin):
+
     list_display = ("id", "name", "measurement_unit", "recipes_count")
     search_fields = ("name", "measurement_unit")
     ordering = ("name",)
-
-    @admin.display(description="Рецептов")
-    def recipes_count(self, ingredient):
-        return ingredient.recipe_ingredients.count()
 
 
 @admin.register(Recipe)
@@ -232,12 +224,12 @@ class RecipeAdmin(admin.ModelAdmin):
         "author__first_name",
         "author__last_name",
     )
-    list_filter = ("tags",)
+    list_filter = ("tags", "author")
     autocomplete_fields = ("tags",)
     inlines = (IngredientInRecipeInline,)
     readonly_fields = (
-        "favorites_total",
-        "image_preview_admin",
+        "favorites_count",
+        "image_preview",
         "ingredients_html",
         "tags_html",
     )
@@ -245,63 +237,45 @@ class RecipeAdmin(admin.ModelAdmin):
     fields = (
         ("name", "author"),
         "image",
-        "image_preview_admin",
+        "image_preview",
         "text",
         "cooking_time",
         "tags",
         "ingredients_html",
         "tags_html",
-        "favorites_total",
+        "favorites_count",
     )
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        return qs.annotate(_fav_count=Count("favorite"))
-
-    @admin.display(description="В избранном", ordering="_fav_count")
-    def favorites_count(self, recipe):
-        return getattr(recipe, "_fav_count", recipe.favorite.count())
+        return qs.annotate(_fav_count=Count("favorites"))
 
     @admin.display(description="Всего добавлений в избранное")
-    def favorites_total(self, recipe):
-        return recipe.favorite.count()
+    def favorites_count(self, recipe):
+        return getattr(recipe, "_fav_count", recipe.favorites.count())
 
     @admin.display(description="Продукты")
     @mark_safe
     def ingredients_html(self, recipe):
         items = recipe.recipe_ingredients.select_related("ingredient")
-        html = "<ul>"
-        for item in items:
-            html += (
-                f"<li>{item.ingredient.name} — "
-                f"{item.amount} {item.ingredient.measurement_unit}</li>"
-            )
-        html += "</ul>"
-        return html
+        return "<br>".join(
+            f"{item.ingredient.name} — {item.amount} {item.ingredient.measurement_unit}"
+            for item in items
+        )
 
     @admin.display(description="Теги")
     @mark_safe
     def tags_html(self, recipe):
-        html = ", ".join(
-            f"<span>{tag.name}</span>" for tag in recipe.tags.all())
-        return html or "—"
+        return "<br>".join(tag.name for tag in recipe.tags.all())
 
     @admin.display(description="Картинка")
     @mark_safe
     def image_preview(self, recipe):
-        try:
-            return (
-                f'<img src="{recipe.image.url}" '
-                'width="80" height="80" '
-                'style="object-fit:cover;border-radius:6px;">'
-            )
-        except Exception:
-            return "—"
-
-    @admin.display(description="Превью изображения")
-    @mark_safe
-    def image_preview_admin(self, recipe):
-        return self.image_preview(recipe)
+        return (
+            f'<img src="{recipe.image.url}" '
+            'width="80" height="80" '
+            'style="object-fit:cover;border-radius:6px;">'
+        )
 
 
 @admin.register(Favorite, ShoppingCart)

@@ -1,3 +1,5 @@
+from collections import Counter
+
 from recipes.models import Ingredient, IngredientInRecipe, Recipe, Tag
 from recipes.models import MIN_COOKING_TIME, MIN_INGREDIENT_AMOUNT
 from rest_framework import serializers
@@ -65,6 +67,22 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
             "text",
             "cooking_time",
         )
+        extra_kwargs = {
+            "ingredients": {"required": True},
+            "tags": {"required": True},
+        }
+    
+    def validate(self, attrs):
+        if self.instance:
+            if "ingredients" not in attrs:
+                raise serializers.ValidationError({
+                    "ingredients": "Это поле обязательное."
+                })
+            if "tags" not in attrs:
+                raise serializers.ValidationError({
+                    "tags": "Это поле обязательное."
+                })
+        return super().validate(attrs)
 
     def validate_tags(self, value):
         if not value:
@@ -76,7 +94,7 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
         if duplicates:
             raise serializers.ValidationError(
                 "Теги должны быть уникальными. Повторяются: "
-                + ", ".join(map(str, sorted(duplicates)))
+                + ", ".join(str(x) for x in duplicates)
             )
         return value
 
@@ -89,7 +107,7 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
         if duplicates:
             raise serializers.ValidationError(
                 "Ингредиенты должны быть уникальными. Повторяются: "
-                + ", ".join(map(str, sorted(duplicates)))
+                + ", ".join(str(x) for x in duplicates)
             )
         return value
 
@@ -102,20 +120,15 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
         return recipe
 
     def update(self, instance, validated_data):
-        if "ingredients" not in validated_data or "tags" not in validated_data:
-            raise serializers.ValidationError({
-                "ingredients": ["Это поле обязательное."],
-                "tags": ["Это поле обязательное."]
-            })
-
         items = validated_data.pop("ingredients")
         tags = validated_data.pop("tags")
-        instance = super().update(instance, validated_data)
+
         instance.tags.set(tags)
 
         IngredientInRecipe.objects.filter(recipe=instance).delete()
         self._set_ingredients(instance, items)
-        return instance
+
+        return super().update(instance, validated_data)
 
     def _set_ingredients(self, recipe, items):
         bulk = [
@@ -131,6 +144,7 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         from api.serializers.recipes import RecipeReadSerializer
         return RecipeReadSerializer(instance, context=self.context).data
+    
 
 
 class RecipeReadSerializer(serializers.ModelSerializer):
@@ -177,11 +191,4 @@ class RecipeReadSerializer(serializers.ModelSerializer):
 
 
 def _get_duplicates(values):
-    seen = set()
-    duplicates = set()
-    for value in values:
-        if value in seen:
-            duplicates.add(value)
-        else:
-            seen.add(value)
-    return duplicates
+    return {item for item, count in Counter(values).items() if count > 1}

@@ -4,4 +4,3 @@ from .recipes import (
     IngredientViewSet,
     RecipeViewSet,
 )
-from .shortlinks import ShortLinkRedirectView

@@ -3,6 +3,8 @@ from django.contrib.auth.models import AbstractUser
 from django.core.validators import MinValueValidator, RegexValidator
 from django.db import models
 
+MIN_INGREDIENT_AMOUNT = 1 
+MIN_COOKING_TIME = 1 
 
 class User(AbstractUser):
 
@@ -52,10 +54,10 @@ class User(AbstractUser):
     class Meta:
         verbose_name = "Пользователь"
         verbose_name_plural = "Пользователи"
-        ordering = ("last_name", "first_name", "id")
+        ordering = ("last_name", "first_name")
 
     def __str__(self):
-        return self.email or self.username
+        return self.email
 
 
 class Subscription(models.Model):
@@ -67,7 +69,7 @@ class Subscription(models.Model):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         verbose_name="Подписчик",
-        related_name="follows",
+        related_name="followers",
         on_delete=models.CASCADE,
         help_text="Кто подписывается.",
     )
@@ -150,7 +152,7 @@ class Recipe(models.Model):
     image = models.ImageField("Изображение", upload_to="recipes/")
     cooking_time = models.PositiveIntegerField(
         "Время приготовления, мин",
-        validators=[MinValueValidator(1)],
+        validators=[MinValueValidator(MIN_COOKING_TIME)],
     )
     tags = models.ManyToManyField(
         Tag,
@@ -162,7 +164,6 @@ class Recipe(models.Model):
     class Meta:
         verbose_name = "Рецепт"
         verbose_name_plural = "Рецепты"
-        # Предметная сортировка: сначала новые рецепты, затем по названию.
         ordering = ("-created", "name")
 
     def __str__(self):
@@ -188,7 +189,7 @@ class IngredientInRecipe(models.Model):
     )
     amount = models.PositiveIntegerField(
         "Количество",
-        validators=[MinValueValidator(1)],
+        validators=[MinValueValidator(MIN_INGREDIENT_AMOUNT)],
     )
 
     class Meta:

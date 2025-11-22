@@ -1,10 +1,8 @@
 from recipes.models import Ingredient, IngredientInRecipe, Recipe, Tag
+from recipes.models import MIN_COOKING_TIME, MIN_INGREDIENT_AMOUNT
 from rest_framework import serializers
 
 from .fields import Base64ImageField
-
-MIN_INGREDIENT_AMOUNT = 1
-MIN_COOKING_TIME = 1
 
 
 class TagSerializer(serializers.ModelSerializer):

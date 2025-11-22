@@ -10,7 +10,6 @@ class BaseLoadFromJSONCommand(BaseCommand):
     """
 
     model = None
-    fields_for_unique_lookup = ()
 
     def add_arguments(self, parser):
         parser.add_argument("file_path", type=str, help="Path to JSON file")
@@ -22,21 +21,12 @@ class BaseLoadFromJSONCommand(BaseCommand):
             with open(file_path, "r", encoding="utf-8") as file:
                 data = json.load(file)
 
-            objects = []
-            existing = set(
-                self.model.objects.values_list(*self.fields_for_unique_lookup)
+            objects = [self.model(**item) for item in data]
+
+            created = self.model.objects.bulk_create(
+                objects,
+                ignore_conflicts=True
             )
-
-            for item in data:
-                key = tuple(
-                    item[field] for field in self.fields_for_unique_lookup)
-                if key in existing:
-                    continue
-                existing.add(key)
-
-                objects.append(self.model(**item))
-
-            created = self.model.objects.bulk_create(objects)
 
             self.stdout.write(
                 self.style.SUCCESS(
@@ -44,4 +34,4 @@ class BaseLoadFromJSONCommand(BaseCommand):
             )
 
         except Exception as error:
-            raise CommandError(error)
+            raise CommandError(f"Error while loading {file_path}: {error}")

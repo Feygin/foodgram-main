@@ -28,8 +28,6 @@ from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
-from recipes.shortlinks import encode_id
-
 
 class IsAuthorOrReadOnly(permissions.BasePermission):
     def has_object_permission(self, request, view, obj):
@@ -154,10 +152,8 @@ class RecipeViewSet(viewsets.ModelViewSet):
         permission_classes=[AllowAny],
     )
     def get_link(self, request, pk=None):
-        code = encode_id(int(pk))
 
         short_url = request.build_absolute_uri(
-            reverse("short-link", kwargs={"code": code})
+            reverse("short-link", args=[pk])
         )
-
         return Response({"short-link": short_url})

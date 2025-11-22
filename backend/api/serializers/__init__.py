@@ -1,6 +1,5 @@
 from .users import (
     UserSerializer,
-    UserCreateSerializer,
     AvatarSerializer,
     UserWithRecipesSerializer,
 )

@@ -13,7 +13,7 @@ class UserSerializer(DjoserUserSerializer):
 
     class Meta(DjoserUserSerializer.Meta):
         model = User
-        fields = DjoserUserSerializer.Meta.fields + ("is_subscribed", "avatar")
+        fields = (*DjoserUserSerializer.Meta.fields, "is_subscribed", "avatar")
         read_only_fields = fields
 
     def get_is_subscribed(self, user):
@@ -25,13 +25,6 @@ class UserSerializer(DjoserUserSerializer):
                 user=request.user, author=user
             ).exists()
         )
-
-
-class UserCreateSerializer(DjoserUserCreateSerializer):
-    class Meta(DjoserUserCreateSerializer.Meta):
-        model = User
-        fields = ("email", "id", "username",
-                  "first_name", "last_name", "password")
 
 
 class AvatarSerializer(serializers.Serializer):
@@ -52,7 +45,7 @@ class UserWithRecipesSerializer(UserSerializer):
     recipes = serializers.SerializerMethodField()
 
     class Meta(UserSerializer.Meta):
-        fields = tuple(UserSerializer.Meta.fields) + (
+        fields = (*UserSerializer.Meta.fields,
             "recipes", "recipes_count")
         read_only_fields = fields
 
@@ -62,11 +55,10 @@ class UserWithRecipesSerializer(UserSerializer):
         try:
             limit = int(request.query_params.get("recipes_limit", 0))
         except Exception:
-            limit = 0
+            limit = 10**10
 
-        qs = getattr(user, "recipes").all()
-        if limit > 0:
-            qs = qs[:limit]
+        qs = user.recipes.all()
+        qs = qs[:limit]
 
         return RecipeMinifiedSerializer(
             qs, many=True, context={"request": request}

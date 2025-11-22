@@ -7,7 +7,6 @@ from api.serializers import (
 from django.contrib.auth import get_user_model
 from django.http import Http404
 from django.shortcuts import get_object_or_404
-from djoser.serializers import UserCreateSerializer
 from djoser.views import UserViewSet as DjoserUserViewSet
 from recipes.models import Subscription
 from rest_framework import permissions, status
@@ -24,7 +23,7 @@ class UsersViewSet(DjoserUserViewSet):
     pagination_class = LimitPageNumberPagination
     serializer_class = UserSerializer
 
-    def perform_create(self, serializer: UserCreateSerializer):
+    def perform_create(self, serializer):
         serializer.save()
 
     @action(detail=False, methods=['get'],

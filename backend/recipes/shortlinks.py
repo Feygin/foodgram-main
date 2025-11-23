@@ -1,8 +1,9 @@
-from django.shortcuts import redirect
 from django.http import JsonResponse
+from django.shortcuts import redirect
 from rest_framework import status
 
 from recipes.models import Recipe
+
 
 def shortlink_redirect(request, recipe_id):
 

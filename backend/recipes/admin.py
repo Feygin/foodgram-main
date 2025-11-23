@@ -13,6 +13,7 @@ from .models import (
     User,
 )
 
+
 class BaseExistsFilter(admin.SimpleListFilter):
     YES_NO = (("yes", "Да"), ("no", "Нет"))
 
@@ -35,11 +36,9 @@ class BaseExistsFilter(admin.SimpleListFilter):
         )
 
         queryset = queryset.annotate(
-            **{self.annotate_field: Exists(exists_qs)}
-        )
+            **{self.annotate_field: Exists(exists_qs)})
 
         return queryset.filter(**{self.annotate_field: value == "yes"})
-
 
 
 class HasRecipesFilter(BaseExistsFilter):
@@ -50,7 +49,6 @@ class HasRecipesFilter(BaseExistsFilter):
     annotate_field = "has_recipes"
 
 
-
 class HasSubscriptionsFilter(BaseExistsFilter):
     title = "есть подписки"
     parameter_name = "has_subscriptions"
@@ -59,14 +57,12 @@ class HasSubscriptionsFilter(BaseExistsFilter):
     annotate_field = "has_subs"
 
 
-
 class HasSubscribersFilter(BaseExistsFilter):
     title = "есть подписчики"
     parameter_name = "has_subscribers"
     related_field = "author"
     exists_model = Subscription
     annotate_field = "has_followers"
-
 
 
 # ------------------------
@@ -259,7 +255,8 @@ class RecipeAdmin(admin.ModelAdmin):
     def ingredients_html(self, recipe):
         items = recipe.recipe_ingredients.select_related("ingredient")
         return "<br>".join(
-            f"{item.ingredient.name} — {item.amount} {item.ingredient.measurement_unit}"
+            (f"{item.ingredient.name} — {item.amount} "
+             f"{item.ingredient.measurement_unit}")
             for item in items
         )
 

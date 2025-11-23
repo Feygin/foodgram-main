@@ -3,8 +3,9 @@ from django.contrib.auth.models import AbstractUser
 from django.core.validators import MinValueValidator, RegexValidator
 from django.db import models
 
-MIN_INGREDIENT_AMOUNT = 1 
-MIN_COOKING_TIME = 1 
+MIN_INGREDIENT_AMOUNT = 1
+MIN_COOKING_TIME = 1
+
 
 class User(AbstractUser):
 

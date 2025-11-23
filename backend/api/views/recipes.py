@@ -1,5 +1,3 @@
-from io import BytesIO
-
 from api.filters import IngredientFilter, RecipeFilter
 from api.pagination import LimitPageNumberPagination
 from api.report import render_shopping_list
@@ -23,6 +21,7 @@ from recipes.models import (
     ShoppingCart,
     Tag,
 )
+from rest_framework.exceptions import ValidationError
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny
@@ -78,35 +77,28 @@ class RecipeViewSet(viewsets.ModelViewSet):
         serializer.save(author=self.request.user)
 
     def _process_relation(self, request, model, pk):
-        messages = {
-            Favorite: 'Рецепт "{name}" уже в избранном.',
-            ShoppingCart: 'Рецепт "{name}" уже в списке покупок.',
-        }
+        if request.method == "DELETE":
+            get_object_or_404(
+                model,
+                user=request.user,
+                recipe_id=pk
+            ).delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
 
         recipe = get_object_or_404(Recipe, pk=pk)
 
-        if request.method == "DELETE":
-            obj = model.objects.filter(user=request.user, recipe=recipe)
-            if not obj.exists():
-                return Response(
-                    {"detail": "Рецепта нет в этом списке."},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-            obj.delete()
-            return Response(status=status.HTTP_204_NO_CONTENT)
-
-        _, created = model.objects.get_or_create(
-            user=request.user, recipe=recipe)
+        obj, created = model.objects.get_or_create(
+            user=request.user,
+            recipe=recipe
+        )
 
         if not created:
-            return Response(
-                {"detail": messages[model].format(name=recipe.name)},
-                status=status.HTTP_400_BAD_REQUEST,
+            raise ValidationError(
+                f'Рецепт "{recipe.name}" уже {model._meta.verbose_name}.'
             )
 
         return Response(
-            RecipeMinifiedSerializer(
-                recipe, context={"request": request}).data,
+            RecipeMinifiedSerializer(recipe, context={"request": request}).data,
             status=status.HTTP_201_CREATED,
         )
 
@@ -138,9 +130,8 @@ class RecipeViewSet(viewsets.ModelViewSet):
         )
 
         text = render_shopping_list(products, recipes)
-        buffer = BytesIO(text.encode("utf-8"))
         return FileResponse(
-            buffer,
+            text.encode("utf-8"),
             as_attachment=True,
             filename="shopping_list.txt"
         )
@@ -152,8 +143,8 @@ class RecipeViewSet(viewsets.ModelViewSet):
         permission_classes=[AllowAny],
     )
     def get_link(self, request, pk=None):
-
+        recipe = get_object_or_404(Recipe, pk=pk)
         short_url = request.build_absolute_uri(
-            reverse("short-link", args=[pk])
+            reverse("short-link", args=[recipe.pk])
         )
         return Response({"short-link": short_url})

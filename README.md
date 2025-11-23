@@ -55,6 +55,7 @@
     DB_PORT=5432
 
     # === Django app ===
+    DJANGO_ENV=local #production
     SECRET_KEY='your_secret_key'
     DEBUG=0
     CLOUD_HOST=feygin-foodgram.viewdns.net
@@ -91,14 +92,11 @@
 
 ## Локальный запуск без Docker
 
-Добавляем команду `--settings=foodgram.settings_local`. Например,
-```
-python manage.py runserver --settings=foodgram.settings_local
-```
+Задаем переменную окружения DJANGO_ENV=local
 
 **Endpoints**
 
-- Сайт: http://127.0.0.1:8081/
-- API: http://127.0.0.1:8081/api/
-- Админка: http://127.0.0.1:8081/admin/
-
+- [Сайт](http://127.0.0.1:8081/)
+- [API](http://127.0.0.1:8081/api/)
+- [Документация API](http://127.0.0.1:8081/api/docs/)
+- [Админка](http://127.0.0.1:8081/admin/)

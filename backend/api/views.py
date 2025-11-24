@@ -93,22 +93,19 @@ class UsersViewSet(DjoserUserViewSet):
         permission_classes=[permissions.IsAuthenticated],
     )
     def subscribe(self, request, id=None):
-
-        if request.method.lower() == "delete":
+        if request.method == "DELETE":
             get_object_or_404(
                 Subscription, user=request.user, author_id=id).delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
-
+        
         # POST
         author = get_object_or_404(User, pk=id)
-
         if request.user == author:
             raise ValidationError(
                 {"detail": "Нельзя подписаться на себя."})
 
         _, created = Subscription.objects.get_or_create(
             user=request.user, author_id=id)
-
         if not created:
             raise ValidationError(
                 {"detail": f'Подписка на "{author.username}" уже существует.'}
@@ -176,7 +173,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
         recipe = get_object_or_404(Recipe, pk=pk)
 
-        obj, created = model.objects.get_or_create(
+        _, created = model.objects.get_or_create(
             user=request.user, recipe=recipe)
 
         if not created:
@@ -217,7 +214,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
         text = render_shopping_list(products, recipes)
         return FileResponse(
-            text.encode("utf-8"),
+            text,
             as_attachment=True,
             filename="shopping_list.txt"
         )
@@ -229,7 +226,12 @@ class RecipeViewSet(viewsets.ModelViewSet):
         permission_classes=[AllowAny],
     )
     def get_link(self, request, pk=None):
-        recipe = get_object_or_404(Recipe, pk=pk)
+        if not Recipe.objects.filter(pk=pk).exists():
+            raise ValidationError(
+                {"detail": f"Рецепта с id={pk} не существует."}
+            )
+        
         short_url = request.build_absolute_uri(
-            reverse("short-link", args=[recipe.pk]))
+            reverse("short-link", args=[pk])
+        )
         return Response({"short-link": short_url})

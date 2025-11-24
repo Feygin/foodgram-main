@@ -55,7 +55,7 @@ class User(AbstractUser):
     class Meta:
         verbose_name = "Пользователь"
         verbose_name_plural = "Пользователи"
-        ordering = ("last_name", "first_name")
+        ordering = ("email",)
 
     def __str__(self):
         return self.email
@@ -125,13 +125,6 @@ class Tag(models.Model):
 class Ingredient(models.Model):
     name = models.CharField("Название", max_length=128)
     measurement_unit = models.CharField("Единица измерения", max_length=64)
-    recipes = models.ManyToManyField(
-        "Recipe",
-        through="IngredientInRecipe",
-        through_fields=("ingredient", "recipe"),
-        related_name="ingredients",
-        verbose_name="Рецепты",
-    )
 
     class Meta:
         verbose_name = "Ингредиент"
@@ -155,7 +148,7 @@ class Recipe(models.Model):
         related_name="recipes",
         verbose_name="Автор",
     )
-    name = models.CharField("Название", max_length=200)
+    name = models.CharField("Название", max_length=256)
     text = models.TextField("Описание")
     image = models.ImageField("Изображение", upload_to="recipes/")
     cooking_time = models.PositiveIntegerField(

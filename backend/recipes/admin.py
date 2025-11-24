@@ -28,8 +28,6 @@ class BaseExistsFilter(admin.SimpleListFilter):
 
     def queryset(self, request, queryset):
         value = self.value()
-        if value not in ("yes", "no"):
-            return queryset
 
         exists_qs = self.exists_model.objects.filter(
             **{self.related_field: OuterRef("pk")}
@@ -71,6 +69,8 @@ class HasSubscribersFilter(BaseExistsFilter):
 
 
 class BaseRecipeRelationAdmin(admin.ModelAdmin):
+
+    list_display = ("recipes_count",)
 
     @admin.display(description="Рецептов")
     def recipes_count(self, obj):
@@ -123,7 +123,7 @@ class UserAdmin(BaseRecipeRelationAdmin):
         "full_name",
         "email",
         "avatar_preview",
-        "recipes_count",
+        *BaseRecipeRelationAdmin.list_display,
         "subscriptions_count",
         "subscribers_count",
     )
@@ -156,11 +156,11 @@ class UserAdmin(BaseRecipeRelationAdmin):
 
     @admin.display(description="Подписок")
     def subscriptions_count(self, user):
-        return Subscription.objects.filter(user=user).count()
+        return user.followers.count()
 
     @admin.display(description="Подписчиков")
     def subscribers_count(self, user):
-        return Subscription.objects.filter(author=user).count()
+        return user.authors.count()
 
 
 @admin.register(Subscription)
@@ -185,7 +185,13 @@ class IngredientInRecipeInline(admin.TabularInline):
 @admin.register(Tag)
 class TagAdmin(BaseRecipeRelationAdmin):
 
-    list_display = ("id", "name", "slug", "recipes_count")
+    list_display = (
+        "id",
+        "name",
+        "slug",
+        "recipes_count",
+        *BaseRecipeRelationAdmin.list_display
+    )
     search_fields = ("name", "slug")
     prepopulated_fields = {"slug": ("name",)}
     ordering = ("name",)
@@ -194,7 +200,12 @@ class TagAdmin(BaseRecipeRelationAdmin):
 @admin.register(Ingredient)
 class IngredientAdmin(BaseRecipeRelationAdmin):
 
-    list_display = ("id", "name", "measurement_unit", "recipes_count")
+    list_display = (
+        "id",
+        "name",
+        "measurement_unit",
+        *BaseRecipeRelationAdmin.list_display
+    )
     search_fields = ("name", "measurement_unit")
     ordering = ("name",)
 
@@ -246,7 +257,7 @@ class RecipeAdmin(admin.ModelAdmin):
         qs = super().get_queryset(request)
         return qs.annotate(_fav_count=Count("favorites"))
 
-    @admin.display(description="Всего добавлений в избранное")
+    @admin.display(description="В избранном")
     def favorites_count(self, recipe):
         return getattr(recipe, "_fav_count", recipe.favorites.count())
 

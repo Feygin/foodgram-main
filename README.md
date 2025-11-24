@@ -33,34 +33,6 @@
 - Главная страница проекта:  
   [`feygin-foodgram.viewdns.net`](feygin-foodgram.viewdns.net)
 
-## Подготовка окружения
-
-1. **Клонировать репозиторий:**
-
-   ```bash
-   git clone https://github.com/Feygin/foodgram-main.git
-   cd foodgram-main
-   ```
-
-2. Создать файл окружения .env:
-
-   ```
-    # === Postgres container (used by the db service) ===
-    POSTGRES_DB=foodgram
-    POSTGRES_USER=foodgram_user
-    POSTGRES_PASSWORD=foodgram_password
-
-    # === Django (backend) connection to Postgres ===
-    DB_HOST=db
-    DB_PORT=5432
-
-    # === Django app ===
-    DJANGO_ENV=local #production
-    SECRET_KEY='your_secret_key'
-    DEBUG=0
-    CLOUD_HOST=feygin-foodgram.viewdns.net
-   ```
-
 ## Развёртывание в Docker
 
 1. **Сборка и запуск контейнеров**
@@ -92,7 +64,55 @@
 
 ## Локальный запуск без Docker
 
-Задаем переменную окружения DJANGO_ENV=local
+1. **Клонировать репозиторий:**
+
+   ```bash
+   git clone https://github.com/Feygin/foodgram-main.git
+   cd foodgram-main
+   ```
+
+2. Создать файл окружения .env с DJANGO_ENV=local:
+
+   ```
+    # === Postgres container (used by the db service) ===
+    POSTGRES_DB=foodgram
+    POSTGRES_USER=foodgram_user
+    POSTGRES_PASSWORD=foodgram_password
+
+    # === Django (backend) connection to Postgres ===
+    DB_HOST=db
+    DB_PORT=5432
+
+    # === Django app ===
+    DJANGO_ENV=local #production
+    SECRET_KEY='your_secret_key'
+    DEBUG=0
+    CLOUD_HOST=feygin-foodgram.viewdns.net
+   ```
+
+3. Создаем виртуальное окружение и устанавлием requirements
+    ```
+    # Создаём виртуальное окружение.
+    python3 -m venv venv
+    # Активируем виртуальное окружение.
+    source venv/bin/activate
+    # Обновляем pip в виртуальном окружении
+    pip install --upgrade pip
+    # Устанавливаем зависимости.
+    pip install -r requirements.txt 
+    ```
+4. Выполняем миграции и запускаем backend
+    ```
+    python manage.py migrate 
+    python manage.py runserver
+    ```
+
+5. Запускам фронтенд
+    ```
+    curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash - &&\
+    sudo apt install -y nodejs 
+    npm run start
+    ```
 
 **Endpoints**
 

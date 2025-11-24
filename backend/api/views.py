@@ -97,7 +97,7 @@ class UsersViewSet(DjoserUserViewSet):
             get_object_or_404(
                 Subscription, user=request.user, author_id=id).delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
-        
+
         # POST
         author = get_object_or_404(User, pk=id)
         if request.user == author:
@@ -230,7 +230,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
             raise ValidationError(
                 {"detail": f"Рецепта с id={pk} не существует."}
             )
-        
+
         short_url = request.build_absolute_uri(
             reverse("short-link", args=[pk])
         )

@@ -164,7 +164,10 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
         duplicates = _get_duplicates(ids)
         if duplicates:
             raise serializers.ValidationError(
-                {"ingredients": ["Ингредиенты должны быть уникальными.", duplicates]}
+                {
+                    "ingredients":
+                    ["Ингредиенты должны быть уникальными.", duplicates]
+                }
             )
         return value
 

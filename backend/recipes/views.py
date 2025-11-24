@@ -1,16 +1,11 @@
-from django.http import JsonResponse
+from django.http import Http404
 from django.shortcuts import redirect
-from rest_framework import status
-
 from recipes.models import Recipe
 
 
 def shortlink_redirect(request, recipe_id):
 
     if not Recipe.objects.filter(pk=recipe_id).exists():
-        return JsonResponse(
-            {"detail": "Ссылка не найдена."},
-            status=status.HTTP_404_NOT_FOUND
-        )
+        raise Http404(f"Рецепт с id={recipe_id} не найден.")
 
     return redirect(f"/recipes/{recipe_id}/")

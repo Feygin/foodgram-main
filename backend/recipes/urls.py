@@ -1,7 +1,7 @@
 from django.urls import path
 
-from recipes.shortlinks import shortlink_redirect
+from recipes.views import shortlink_redirect
 
 urlpatterns = [
-    path("s/<str:code>/", shortlink_redirect, name="short-link"),
+    path("<int:recipe_id>", shortlink_redirect, name="short-link"),
 ]

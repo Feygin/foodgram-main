@@ -131,10 +131,6 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
             "text",
             "cooking_time",
         )
-        extra_kwargs = {
-            "ingredients": {"required": True},
-            "tags": {"required": True},
-        }
 
     def validate(self, attrs):
         if self.instance:
@@ -156,8 +152,7 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
 
         if duplicates:
             raise serializers.ValidationError(
-                "Теги должны быть уникальными. Повторяются: "
-                + ", ".join(str(x) for x in duplicates)
+                {"tags": ["Теги должны быть уникальными.", duplicates]}
             )
         return value
 
@@ -169,8 +164,7 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
         duplicates = _get_duplicates(ids)
         if duplicates:
             raise serializers.ValidationError(
-                "Ингредиенты должны быть уникальными. Повторяются: "
-                + ", ".join(str(x) for x in duplicates)
+                {"ingredients": ["Ингредиенты должны быть уникальными.", duplicates]}
             )
         return value
 
@@ -237,15 +231,19 @@ class RecipeReadSerializer(serializers.ModelSerializer):
         )
         read_only_fields = fields
 
-    def get_is_favorited(self, recipe):
+    def _check_relation(self, recipe, relation_name):
         user = self.context["request"].user
+        if not user.is_authenticated:
+            return False
+        relation = getattr(recipe, relation_name)
         return (user.is_authenticated
-                and recipe.favorites.filter(user=user).exists())
+                and relation.filter(user=user).exists())
+
+    def get_is_favorited(self, recipe):
+        return self._check_relation(recipe, "favorites")
 
     def get_is_in_shopping_cart(self, recipe):
-        user = self.context["request"].user
-        return (user.is_authenticated
-                and recipe.shopping_cart.filter(user=user).exists())
+        return self._check_relation(recipe, "shopping_cart")
 
 
 def _get_duplicates(values):
